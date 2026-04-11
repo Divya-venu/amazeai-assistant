@@ -1,0 +1,6 @@
+Order Date,product_name,category,price,quantity,customer,Country
+2024-01-01,Product A,Electronics,1000,2,John Doe,USA
+2024-01-02,Product B,SaaS,500,1,Jane Smith,UK
+2024-01-03,Product C,Hardware,2000,1,Bob Brown,Canada
+2024-01-04,Product D,Electronics,1500,3,Alice White,Germany
+2024-01-05,Product E,Consulting,3000,1,Charlie Green,France

@@ -1,0 +1,36 @@
+{
+  "name": "ai-business-assistant-backend",
+  "version": "1.0.0",
+  "description": "Backend for AI Business Assistant",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "axios": "^1.13.6",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "groq-sdk": "^0.37.0",
+    "helmet": "^7.1.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.4.0",
+    "multer": "^2.1.1",
+    "node-cron": "^3.0.3",
+    "openai": "^4.51.0",
+    "pdfkit": "^0.17.2",
+    "socket.io": "^4.8.3",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

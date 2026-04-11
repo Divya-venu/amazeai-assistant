@@ -1,0 +1,17 @@
+{
+    "name": "ai-business-assistant-root",
+    "version": "1.0.0",
+    "description": "Root orchestration for AI Business Assistant",
+    "scripts": {
+        "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+        "dev:backend": "cd backend && npm run dev",
+        "dev:frontend": "cd frontend && npm run dev",
+        "dev:ml": "cd backend/ml_service && python -m uvicorn main:app --host 0.0.0.0 --port 8000",
+        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:ml\"",
+        "seed": "cd backend && node seed_sales.js"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "kill-port": "^2.0.1"
+    }
+}
