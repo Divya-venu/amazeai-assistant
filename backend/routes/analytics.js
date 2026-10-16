@@ -7,6 +7,6 @@ const cacheMiddleware = require('../middleware/cacheMiddleware');
 router.post('/', postAnalytics);
 
 // Route: GET /api/analytics   — database-driven analytics overview (unchanged)
-router.get('/', cacheMiddleware(300), getAnalyticsOverview);
+router.get('/', getAnalyticsOverview);
 
 module.exports = router;

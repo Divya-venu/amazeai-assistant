@@ -12,3 +12,15 @@ backend/test_*.csv
 frontend/dist/
 frontend/node_modules/
 backend/node_modules/
+
+# Environment files
+.env.*
+!.env.example
+
+# Logs
+*.log
+backend/logs/
+
+# Temporary files
+New Text Document.txt
+salaryRev,.txt

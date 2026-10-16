@@ -17,10 +17,30 @@ const { getChatCompletion } = require('../services/groqService');
 
 const detectDelimiter = (filePath) => {
     const content = fs.readFileSync(filePath, 'utf8');
-    const firstLine = content.split('\n')[0];
-    if (firstLine.includes(',')) return ',';
-    if (firstLine.includes(';')) return ';';
-    if (firstLine.includes('\t')) return '\t';
+
+    const firstLine = content
+        .split(/\r?\n/)[0]
+        .replace(/^\uFEFF/, '')
+        .trim();
+
+    console.log('[DEBUG] CSV first line:', firstLine);
+
+    if (firstLine.includes(',')) {
+        console.log('[DEBUG] Detected delimiter: COMMA');
+        return ',';
+    }
+
+    if (firstLine.includes(';')) {
+        console.log('[DEBUG] Detected delimiter: SEMICOLON');
+        return ';';
+    }
+
+    if (firstLine.includes('\t')) {
+        console.log('[DEBUG] Detected delimiter: TAB');
+        return '\t';
+    }
+
+    console.log('[DEBUG] No delimiter detected, using COMMA');
     return ',';
 };
 
@@ -74,8 +94,10 @@ const processCSV = async (filePath) => {
     const results = [];
     
     return new Promise((resolve, reject) => {
-        fs.createReadStream(filePath)
-            .pipe(csv({ separator: delimiter }))
+      fs.createReadStream(filePath)
+    .pipe(csv({
+        separator: ','
+    }))
             .on('data', (data) => results.push(data))
             .on('end', async () => {
                 if (results.length === 0) return reject(new Error("Empty CSV"));
@@ -83,6 +105,7 @@ const processCSV = async (filePath) => {
                 const headers = Object.keys(results[0]);
                 const sampleRows = results.slice(0, 10);
                 const schemaMeta = await inferSchemaWithAI(headers, sampleRows);
+                console.log('[AI SCHEMA META]:', schemaMeta);
                 
                 // Clean data based on inferred schema
                 const cleanedResults = results.map(row => {

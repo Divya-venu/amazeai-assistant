@@ -9,16 +9,17 @@ exports.createSale = async (req, res) => {
         const vector = await generateEmbedding(contentToEmbed);
 
         const sale = await Sale.create({
-            productName,
-            category,
-            price,
-            costPrice,
-            quantity,
-            customerName,
-            paymentMethod,
-            date: date || new Date(),
-            embedding: vector
-        });
+    productName,
+    category,
+    price,
+    costPrice,
+    quantity,
+    profit: (price - costPrice) * quantity,
+    customerName,
+    paymentMethod,
+    date: date || new Date(),
+    embedding: vector
+});
 
         // Emit real-time update
         const io = req.app.get('io');
@@ -51,9 +52,10 @@ exports.seedSales = async (req, res) => {
             const contentToEmbed = `Product: ${item.productName}, Category: ${item.category}, Customer: ${item.customerName}`;
             const vector = await generateEmbedding(contentToEmbed);
             return {
-                ...item,
+            ...item,
+             profit: (item.price - item.costPrice) * item.quantity,
                 embedding: vector
-            };
+        };
         }));
 
         await Sale.insertMany(seededData);
@@ -203,7 +205,14 @@ exports.getSalesSummary = async (req, res) => {
                                 _id: null,
                                 totalRevenue: { $sum: { $multiply: ["$price", "$quantity"] } },
                                 totalExpenses: { $sum: { $multiply: ["$costPrice", "$quantity"] } },
-                                netProfit: { $sum: "$profit" }
+                                netProfit: {
+    $sum: {
+        $multiply: [
+            { $subtract: ["$price", "$costPrice"] },
+            "$quantity"
+        ]
+    }
+}
                             }
                         }
                     ],
@@ -214,7 +223,14 @@ exports.getSalesSummary = async (req, res) => {
                                 _id: { $dateToString: { format: "%Y-%m", date: "$date" } },
                                 revenue: { $sum: { $multiply: ["$price", "$quantity"] } },
                                 expenses: { $sum: { $multiply: ["$costPrice", "$quantity"] } },
-                                netProfit: { $sum: "$profit" }
+                                netProfit: {
+    $sum: {
+        $multiply: [
+            { $subtract: ["$price", "$costPrice"] },
+            "$quantity"
+        ]
+    }
+}
                             }
                         },
                         { $sort: { "_id": 1 } }

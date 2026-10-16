@@ -19,7 +19,11 @@ const Register = () => {
         setLoading(true);
         setError('');
         try {
-            const { data } = await apiClient.post('/auth/register', formData);
+            const response = await apiClient.post('/auth/register', formData);
+
+console.log('REGISTER RESPONSE:', response.data);
+
+const data = response.data;
             // User requested token in localStorage
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.data.user));

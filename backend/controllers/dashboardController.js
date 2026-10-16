@@ -102,7 +102,7 @@ exports.getAIInsights = asyncHandler(async (req, res) => {
     const prompt = `Analyze this SaaS dashboard data for shop ${req.shopId}: ...`; // Simplified for brevity
 
     const response = await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         messages: [{ role: "system", content: "Senior Financial Analyst" }, { role: "user", content: prompt }],
     });
 
@@ -110,7 +110,7 @@ exports.getAIInsights = asyncHandler(async (req, res) => {
     await AIUsage.create({
         user: req.user._id,
         shopId: req.shopId,
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
         totalTokens: response.usage.total_tokens,
@@ -145,7 +145,7 @@ ${dataDump.substring(0, 5000)} // Limiting size for API
 
     try {
         const response = await groq.chat.completions.create({
-            model: "llama-3.1-8b-instant",
+            model: "openai/gpt-oss-20b",
             messages: [
                 { role: "user", content: prompt }
             ],
@@ -157,7 +157,7 @@ ${dataDump.substring(0, 5000)} // Limiting size for API
         // Log AI usage (optional, omits shopId now)
         await AIUsage.create({
             user: req.user?._id,
-            model: "llama-3.1-8b-instant",
+            model: "openai/gpt-oss-20b",
             promptTokens: response.usage.prompt_tokens,
             completionTokens: response.usage.completion_tokens,
             totalTokens: response.usage.total_tokens,

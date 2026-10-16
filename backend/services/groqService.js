@@ -17,7 +17,7 @@ async function classifyIntent(message) {
 
     try {
         const intentResponse = await groq.chat.completions.create({
-            model: "llama-3.1-8b-instant", // Keep it fast for intent classification
+            model: "openai/gpt-oss-20b", // Keep it fast for intent classification
             messages: [{ role: "user", content: classificationPrompt }],
             temperature: 0.1
         });
@@ -39,7 +39,7 @@ async function classifyIntent(message) {
 async function getChatCompletion(systemPrompt, userMessage) {
     try {
         const response = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile", // Upgraded model for better responses
+            model: "openai/gpt-oss-120b", // Upgraded model for better responses
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userMessage }

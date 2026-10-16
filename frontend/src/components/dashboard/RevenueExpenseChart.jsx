@@ -25,7 +25,7 @@ const COLOR_PALETTE = ['#3b82f6', '#f97316', '#10b981', '#f43f5e', '#8b5cf6', '#
 
 const RevenueExpenseChart = ({ data, schemaMeta }) => {
     // Show top 2-3 metrics for comparison
-    const metricsToShow = schemaMeta?.metrics?.slice(0, 3) || ['revenue', 'expenses'];
+    const metricsToShow = ['revenue', 'cost'];
 
     // Heuristic to check if it's a currency metric
     const isCurrency = (m) => /revenue|price|cost|spend|amount|profit/i.test(m);
@@ -33,8 +33,15 @@ const RevenueExpenseChart = ({ data, schemaMeta }) => {
     const chartData = {
         labels: data?.length ? data.map(d => d.month) : ['-', '-', '-', '-'],
         datasets: metricsToShow.map((metric, index) => ({
-            label: metric.replace(/([A-Z])/g, ' $1').toUpperCase(),
-            data: data?.length ? data.map(d => d[metric] || 0) : [0, 0, 0, 0],
+            label: metric === 'cost'? 'EXPENSES'  : metric.replace(/([A-Z])/g, ' $1').toUpperCase(),
+            data: data?.length
+    ? data.map(d => {
+        if (metric === 'cost') {
+            return d.cost ?? d.expenses ?? 0;
+        }
+        return d[metric] ?? 0;
+    })
+    : [0, 0, 0, 0],
             borderColor: COLOR_PALETTE[index % COLOR_PALETTE.length],
             backgroundColor: 'transparent',
             tension: 0.4,
@@ -70,7 +77,7 @@ const RevenueExpenseChart = ({ data, schemaMeta }) => {
                         const metricKey = metricsToShow[context.datasetIndex];
                         
                         if (isCurrency(metricKey)) {
-                            return `${label}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)}`;
+                            return `${label}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' }).format(val)}`;
                         }
                         return `${label}: ${val.toLocaleString()}`;
                     }

@@ -18,16 +18,85 @@ const AIInsightsCard = ({ insights, loading, onGenerate }) => {
                 {insights ? (
                     <div className="flex flex-col gap-3 bg-gray-900/40 border border-gray-700/50 p-6 rounded-2xl text-gray-200 text-sm">
                         {typeof insights === 'string' ? (
-                            <div className="whitespace-pre-line leading-relaxed">{insights}</div>
-                        ) : (
-                            <>
-                                {insights.revenueInsight && <p>📈 <strong>Revenue:</strong> {insights.revenueInsight}</p>}
-                                {insights.expenseInsight && <p>📉 <strong>Expenses:</strong> {insights.expenseInsight}</p>}
-                                {insights.profitInsight && <p>💰 <strong>Profit:</strong> {insights.profitInsight}</p>}
-                                {insights.marginInsight && <p>🤖 <strong>AI:</strong> {insights.marginInsight}</p>}
-                                {Object.values(insights).length === 0 && <p>No specific insights available.</p>}
-                            </>
-                        )}
+    <div className="whitespace-pre-line leading-relaxed">
+        {insights}
+    </div>
+) : (
+    <>
+        {insights.report && (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+
+                <div>
+                    <p className="text-gray-500 text-xs">Revenue</p>
+                    <p className="text-white font-bold text-lg">
+                        ₹{Number(String(insights.report.totalRevenue).replace(/[^0-9.-]/g, '')).toLocaleString('en-IN')}
+                    </p>
+                </div>
+
+                <div>
+                    <p className="text-gray-500 text-xs">Expenses</p>
+                    <p className="text-white font-bold text-lg">
+                        ₹{Number(String(insights.report.totalExpenses).replace(/[^0-9.-]/g, '')).toLocaleString('en-IN')}
+                    </p>
+                </div>
+
+                <div>
+                    <p className="text-gray-500 text-xs">Net Profit</p>
+                    <p className="text-emerald-400 font-bold text-lg">
+                        ₹{Number(String(insights.report.netProfit).replace(/[^0-9.-]/g, '')).toLocaleString('en-IN')}
+                    </p>
+                </div>
+
+                <div>
+                    <p className="text-gray-500 text-xs">Profit Margin</p>
+                    <p className="text-white font-bold text-lg">
+                        {insights.report.profitMargin}
+                    </p>
+                </div>
+
+                <div>
+                    <p className="text-gray-500 text-xs">Top Category</p>
+                    <p className="text-indigo-400 font-bold text-lg">
+                        {insights.report.topCategory}
+                    </p>
+                </div>
+
+            </div>
+        )}
+
+        {insights.summary && (
+            <div className="mb-6">
+                <h4 className="text-indigo-300 font-bold mb-2">
+                    Executive Summary
+                </h4>
+
+                <p className="text-gray-300 leading-relaxed">
+                    {insights.summary}
+                </p>
+            </div>
+        )}
+
+        {insights.recommendations?.length > 0 && (
+            <div>
+                <h4 className="text-indigo-300 font-bold mb-3">
+                    AI Recommendations
+                </h4>
+
+                <ul className="space-y-3">
+                    {insights.recommendations.map((recommendation, index) => (
+                        <li
+                            key={index}
+                            className="text-gray-300 flex gap-2"
+                        >
+                            <span className="text-purple-400">•</span>
+                            <span>{recommendation}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
+    </>
+)}
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-700/50 rounded-2xl">

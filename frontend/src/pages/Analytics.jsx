@@ -36,7 +36,7 @@ const TT = ({ active, payload, label }) => {
             <p className="text-gray-400 mb-2 font-semibold">{label}</p>
             {payload.map(p => (
                 <p key={p.name} style={{ color: p.color }} className="font-bold">
-                    {p.name}: ${Number(p.value).toLocaleString()}
+                    {p.name}: ₹{Number(p.value).toLocaleString('en-IN')}
                 </p>
             ))}
         </div>
@@ -58,11 +58,23 @@ export default function Analytics() {
             console.log('[Analytics] Fetching dynamic data...');
             const result = await getAnalyticsData();
             console.log('[Analytics] Data received:', result);
-            setData({
-                kpis: result.kpis || { totalRevenue: 0, totalOrders: 0, uniqueCustomers: 0, avgOrderValue: 0 },
-                monthlyData: result.monthlyData || [],
-                categoryData: result.categoryData || []
-            });
+            setData({kpis: {
+        totalRevenue: result.kpis?.revenue || 0,
+        totalOrders: result.kpis?.recordCount || 0,
+        uniqueCustomers: result.kpis?.recordCount || 0,
+        avgOrderValue:
+            result.kpis?.recordCount > 0
+                ? result.kpis.revenue / result.kpis.recordCount
+                : 0
+    },
+
+    monthlyData: (result.monthlyData || []).map((item) => ({
+        ...item,
+        expenses: item.expenses ?? item.cost ?? 0
+    })),
+
+    categoryData: result.categoryData || []
+});
             setError(null);
         } catch (err) {
             console.error('[Analytics] Error fetching data:', err);
@@ -84,8 +96,10 @@ export default function Analytics() {
 
         return () => socket.disconnect();
     }, [fetchAnalytics]);
-
-    const formatCurr = (val) => `$${Number(val || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const formatCurr = (val) =>
+    `₹${Number(val || 0).toLocaleString('en-IN', {
+        maximumFractionDigits: 0
+    })}`;
     const formatNum = (val) => Number(val || 0).toLocaleString();
 
     if (loading && !data.monthlyData.length) {

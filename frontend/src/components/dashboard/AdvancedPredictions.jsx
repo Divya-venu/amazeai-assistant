@@ -12,8 +12,15 @@ const AdvancedPredictions = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get('http://localhost:5000/api/predictions');
-            setData(response.data);
+            const response = await axios.get('http://localhost:5000/api/forecast');
+
+console.log('🔮 FORECAST API RESPONSE:', response.data);
+console.log('Historical:', response.data.historical);
+console.log('Dates:', response.data.dates);
+console.log('Predictions:', response.data.predictions);
+console.log('Trend:', response.data.trend);
+
+setData(response.data);
         } catch (err) {
             console.error('❌ Prediction Fetch Error:', err);
             setError(err.response?.data?.error || 'Forecast engine is offline');

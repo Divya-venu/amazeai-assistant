@@ -31,13 +31,17 @@ async function seedSales() {
         const allSeededRecords = [];
 
         for (const item of sampleData) {
-            // Generate dummy embedding if quota persists, else it uses real one
-            const vector = await generateEmbedding(`${item.productName} in ${item.category}`);
-            allSeededRecords.push({
-                ...item,
-                embedding: vector
-            });
-        }
+    // Generate dummy embedding if quota persists, else it uses real one
+    const vector = await generateEmbedding(
+        `${item.productName} in ${item.category}`
+    );
+
+    allSeededRecords.push({
+        ...item,
+        profit: (item.price - item.costPrice) * item.quantity,
+        embedding: vector
+    });
+}
 
         await Sale.insertMany(allSeededRecords);
         console.log(`Successfully seeded ${allSeededRecords.length} records`);

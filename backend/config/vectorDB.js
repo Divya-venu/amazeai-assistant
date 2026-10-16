@@ -1,23 +1,8 @@
-const OpenAI = require('openai');
 const Sale = require('../models/Sale');
+// const { generateEmbedding } = require('../services/embeddingService');
 
-const openai = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey: process.env.GROQ_API_KEY || 'dummy_key',
-});
 
-/**
- * Generate embedding using dummy or mock embedding since Groq doesn't support embeddings easily natively
- */
-exports.generateEmbedding = async (text) => {
-    try {
-        console.warn('[VectorDB] Using dummy embedding - Groq API configured for chat completions only');
-        return new Array(1536).fill(0); // Standard OpenAI embedding size
-    } catch (error) {
-        console.error('Embedding Generation Error:', error.message);
-        return new Array(1536).fill(0); // Fallback to dummy
-    }
-};
+
 
 /**
  * Manual Cosine Similarity implementation
@@ -35,10 +20,11 @@ exports.cosineSimilarity = (vecA, vecB) => {
 /**
  * Retrieve top 5 sales most relevant to a query embedding
  */
-exports.getRelevantContext = async (queryEmbedding) => {
+exports.getRelevantContext = async (queryEmbedding, shopId) => {
     try {
         // Fetch all sales that have embeddings
-        const allSales = await Sale.find({
+            const allSales = await Sale.find({
+            shopId: shopId,
             embedding: { $exists: true, $ne: [] }
         });
 

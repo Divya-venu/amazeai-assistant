@@ -30,7 +30,7 @@ exports.chatWithAssistant = asyncHandler(async (req, res) => {
     // 3. Call OpenAI directly without Conversation memory per user since auth might be optional
     try {
         const response = await groq.chat.completions.create({
-            model: "llama-3.1-8b-instant", // Use supported Groq model
+            model: "openai/gpt-oss-20b", // Use supported Groq model
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: message }

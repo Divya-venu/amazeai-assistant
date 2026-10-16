@@ -1,6 +1,7 @@
 # AI Business Intelligence Assistant
 
-A comprehensive real-world SaaS Dashboard using React, TailwindCSS, Chart.js, Node.js, Express, MongoDB, and OpenAI for financial intelligence.
+using React, TailwindCSS, Chart.js, Node.js, Express, MongoDB, and Groq-powered AI.
+ for financial intelligence.
 
 ## Features
 
@@ -49,3 +50,12 @@ Access the application locally at `http://localhost:5173`.
 - Register an account or log in.
 - View interactive charts, and press **Generate AI Insights** to execute the analytics.
 - Start asking queries in the chatbot component, knowing it contextually understands your sales metrics!
+
+<!-- 
+1. WhatsApp number → User/shop mapping 🔐
+2. Shop-isolated sales retrieval
+3. Real embeddings
+4. Vector search/RAG
+5. Groq response
+6. Local WhatsApp simulation
+7. Later Meta Cloud API -->

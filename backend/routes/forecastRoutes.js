@@ -3,7 +3,7 @@ const router = express.Router();
 const { getForecast, postForecast } = require('../controllers/forecastController');
 const cacheMiddleware = require('../middleware/cacheMiddleware');
 
-router.get('/', cacheMiddleware(300), getForecast);
+router.get('/', getForecast);
 router.post('/', postForecast);
 
 module.exports = router;

@@ -17,7 +17,7 @@ const Dashboard = () => {
         setLoading(true);
         try {
             const response = await axios.get('http://localhost:5000/api/analytics');
-            console.log('✅ Dashboard Data Fetched:', response.data);
+           console.log('✅ Dashboard Data Fetched:',JSON.stringify(response.data, null, 2));
             setAiData({
                 stats: response.data.kpis,
                 insights: response.data.insights,
@@ -42,9 +42,30 @@ const Dashboard = () => {
         setTimeout(() => setSuccessMsg(''), 5000);
     };
 
-    const handleGenerateInsights = () => {
-        console.log('Generating insights for existing data...');
-    };
+    const handleGenerateInsights = async () => {
+    console.log('Generating insights for existing data...');
+
+    try {
+        setLoading(true);
+
+        const response = await axios.post(
+            'http://localhost:5000/api/insights',
+            {}
+        );
+
+        console.log('✅ AI Insights Response:', response.data);
+
+        setAiData(prev => ({
+            ...prev,
+            insights: response.data
+        }));
+
+    } catch (err) {
+        console.error('❌ Error generating AI insights:', err);
+    } finally {
+        setLoading(false);
+    }
+};
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between mb-8">
@@ -93,8 +114,10 @@ const Dashboard = () => {
                 </div>
                 {/* Advanced Predictions Component */}
                 <div className="lg:col-span-1">
-                    {/* <AdvancedPredictions /> */}
-                    <div className="text-white p-10">Testing Dashboard Rendering...</div>
+                    {/* Advanced Predictions Component */}
+                    <div className="lg:col-span-1">
+                        <AdvancedPredictions />
+                    </div>
                 </div>
             </div>
 

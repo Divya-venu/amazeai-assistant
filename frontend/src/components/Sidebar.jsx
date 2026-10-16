@@ -1,19 +1,28 @@
+
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-    LayoutDashboard, TrendingUp, Sparkles, 
-    MessageSquare, LineChart, Settings, LogOut 
+    LayoutDashboard,
+    TrendingUp,
+    Sparkles,
+    MessageSquare,
+    LineChart,
+    ShoppingCart,
+    Settings,
+    LogOut
 } from 'lucide-react';
 
 const Sidebar = () => {
-    const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard',   path: '/dashboard' },
-        { icon: LineChart,       label: 'Analytics',   path: '/analytics' },
-        { icon: Sparkles,        label: 'AI Insights', path: '/insights' },
-        { icon: MessageSquare,   label: 'AI Chat',     path: '/chat' },
-        { icon: TrendingUp,      label: 'Predictions', path: '/predictions' },
-        { icon: Settings,        label: 'Settings',    path: '/settings' },
-    ];
+    const navigate = useNavigate();
+   const menuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard',   path: '/dashboard' },
+    { icon: LineChart,       label: 'Analytics',   path: '/analytics' },
+    { icon: ShoppingCart,    label: 'Sales',       path: '/sales' },
+    { icon: Sparkles,        label: 'AI Insights', path: '/insights' },
+    { icon: MessageSquare,   label: 'AI Chat',     path: '/chat' },
+    { icon: TrendingUp,      label: 'Predictions', path: '/predictions' },
+    { icon: Settings,        label: 'Settings',    path: '/settings' },
+];
 
     return (
         <aside className="w-64 h-full glass-nav border-r border-white/5 flex flex-col pt-8">
@@ -48,10 +57,17 @@ const Sidebar = () => {
             </nav>
 
             <div className="p-4 mt-auto border-t border-white/5">
-                <button className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-gray-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all group">
-                    <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
-                    <span className="text-sm font-bold tracking-tight">Logout</span>
-                </button>
+                <button
+    onClick={() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
+    }}
+    className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-gray-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all group"
+>
+    <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+    <span className="text-sm font-bold tracking-tight">Logout</span>
+</button>
             </div>
         </aside>
     );

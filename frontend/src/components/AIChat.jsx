@@ -45,7 +45,7 @@ const AIChat = ({ context }) => {
                 </div>
                 <div>
                     <h3 className="text-lg font-black text-white tracking-tight">AI Business Assistant</h3>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Groq • Llama-3.1-8b-instant</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Groq • openai/gpt-oss-20b</p>
                 </div>
             </div>
 

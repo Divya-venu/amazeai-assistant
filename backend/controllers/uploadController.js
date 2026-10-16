@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Dataset = require('../models/Dataset');
+const Sale = require('../models/Sale');
 const AIResult = require('../models/AIResult');
 const { processCSV } = require('../utils/csvProcessor');
 
@@ -39,6 +40,8 @@ const handleUpload = async (req, res) => {
 
         // ── 1. Parse CSV ──────────────────────────────────────────────────────
         const { data, preview, meta, schemaMeta } = await processCSV(tempPath);
+        console.log('[DEBUG] First processed CSV row:', data[0]);
+console.log('[DEBUG] CSV row keys:', Object.keys(data[0] || {}));
 
         if (!data || data.length === 0) {
             return res.status(400).json({
@@ -48,18 +51,41 @@ const handleUpload = async (req, res) => {
             });
         }
 
-        // ── 2. Persist to MongoDB ─────────────────────────────────────────────
+          // ── 2. Persist to MongoDB ─────────────────────────────────────────────
         const datasetId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
 
-        await Dataset.deleteMany({});          // Clear old dataset (single-tenant prototype)
+        // Clear old dataset
+        await Dataset.deleteMany({});
 
+        // Save the original uploaded data
         const rows = data.map(row => ({
             datasetId,
             schemaMeta,
             data: row
         }));
 
-        await Dataset.insertMany(rows);
+            await Dataset.insertMany(rows);
+
+            // Convert CSV rows into Sale documents
+            const salesRecords = data.map(row => ({
+                productName: row.product,
+                category: row.category,
+                price: Number(row.price),
+                costPrice: Number(row.costPrice),
+                quantity: Number(row.quantity),
+                date: new Date(row.date),
+                customerName: 'Guest',
+                paymentMethod: 'Cash',
+                country: 'Unknown'
+            }));
+
+            // Replace old sales with the newly uploaded dataset
+            await Sale.deleteMany({});
+
+            // Insert new sales records
+            await Sale.insertMany(salesRecords);
+
+            console.log(`[uploadController] Inserted ${salesRecords.length} sales records.`);
 
         // ── 3. Real-time notification via Socket.IO ───────────────────────────
         const io = req.app.get('io');

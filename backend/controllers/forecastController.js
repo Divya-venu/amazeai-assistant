@@ -179,7 +179,13 @@ exports.getForecast = async (req, res) => {
             { $match: query },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                   _id: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$date",
+                            timezone: "Asia/Kolkata"
+                        }
+                    },
                     revenue: { $sum: { $multiply: ["$price", "$quantity"] } },
                     totalQuantity: { $sum: "$quantity" },
                     // We also need product-level demand for top products
@@ -199,29 +205,83 @@ exports.getForecast = async (req, res) => {
         }
 
         // 1. Prepare Daily Revenue for Regression
-        const sortedDays = aggregatedData.map(d => d._id);
-        const revenueValues = aggregatedData.map(d => d.revenue);
+        // 1. Prepare Daily Revenue for Regression
+const sortedDays = aggregatedData.map(d => d._id);
+const revenueValues = aggregatedData.map(d => d.revenue);
 
-        // Linear Regression Y = mX + b
-        const linearRegression = (yValues) => {
-            const n = yValues.length;
-            if (n === 0) return { m: 0, b: 0 };
-            if (n === 1) return { m: 0, b: yValues[0] };
+// Convert dates into actual number of days from the first date
+const firstDate = new Date(sortedDays[0]);
 
-            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-            for (let i = 0; i < n; i++) {
-                sumX += i;
-                sumY += yValues[i];
-                sumXY += i * yValues[i];
-                sumXX += i * i;
-            }
+const dayIndexes = sortedDays.map(dateString => {
+    const currentDate = new Date(dateString);
 
-            const m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-            const b = (sumY - m * sumX) / n;
-            return { m, b, n };
+    return Math.round(
+        (currentDate - firstDate) / (1000 * 60 * 60 * 24)
+    );
+});
+
+console.log('📅 Forecast dates:', sortedDays);
+console.log('📊 Actual day indexes:', dayIndexes);
+console.log('💰 Revenue values:', revenueValues);
+
+// Linear Regression Y = mX + b
+const linearRegression = (xValues, yValues) => {
+    const n = yValues.length;
+
+    if (n === 0) {
+        return { m: 0, b: 0 };
+    }
+
+    if (n === 1) {
+        return {
+            m: 0,
+            b: yValues[0]
         };
+    }
 
-        const { m: revM, b: revB, n: revN } = linearRegression(revenueValues);
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+
+    for (let i = 0; i < n; i++) {
+        sumX += xValues[i];
+        sumY += yValues[i];
+        sumXY += xValues[i] * yValues[i];
+        sumXX += xValues[i] * xValues[i];
+    }
+
+    const denominator =
+        (n * sumXX) - (sumX * sumX);
+
+    if (denominator === 0) {
+        return {
+            m: 0,
+            b: yValues[0]
+        };
+    }
+
+    const m =
+        ((n * sumXY) - (sumX * sumY)) /
+        denominator;
+
+    const b =
+        (sumY - (m * sumX)) / n;
+
+    return {
+        m,
+        b,
+        n
+    };
+};
+
+const {
+    m: revM,
+    b: revB
+} = linearRegression(
+    dayIndexes,
+    revenueValues
+);
 
         // Predict next 30 days revenue
         const lastDateStr = sortedDays[sortedDays.length - 1];
@@ -229,14 +289,25 @@ exports.getForecast = async (req, res) => {
         const predictedRevenue = [];
 
         for (let i = 1; i <= 30; i++) {
-            const nextDate = new Date(lastDate);
-            nextDate.setDate(lastDate.getDate() + i);
-            const predictedRev = Math.max(0, revM * (revN + i - 1) + revB);
-            predictedRevenue.push({
-                date: nextDate.toISOString().split('T')[0],
-                expectedRevenue: Math.round(predictedRev)
-            });
-        }
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(lastDate.getDate() + i);
+
+    // X value is now based on actual calendar days
+    const nextDayIndex =
+        Math.round(
+            (nextDate - firstDate) / (1000 * 60 * 60 * 24)
+        );
+
+    const predictedRev = Math.max(
+        0,
+        revM * nextDayIndex + revB
+    );
+
+    predictedRevenue.push({
+        date: nextDate.toISOString().split('T')[0],
+        expectedRevenue: Math.round(predictedRev)
+    });
+}
 
         // 2. Predict Demand for Top 5 Products
         // Find top 5 products overall from aggregated data
@@ -266,19 +337,88 @@ exports.getForecast = async (req, res) => {
                 });
 
                 const yVals = sortedDays.map(d => dayQtyMap[d] || 0);
-                const { m, b, n } = linearRegression(yVals);
-                const predQty = Math.max(0, m * (n + i - 1) + b);
+
+const { m, b } = linearRegression(
+    dayIndexes,
+    yVals
+);
+
+const nextDayIndex =
+    Math.round(
+        (nextDate - firstDate) / (1000 * 60 * 60 * 24)
+    );
+
+const predQty = Math.max(
+    0,
+    m * nextDayIndex + b
+);
                 demandEntry[name] = Math.round(predQty);
             });
 
             predictedDemand.push(demandEntry);
         }
 
-        res.json({
-            predictedRevenue,
-            predictedDemand,
-            productsList: topProducts
-        });
+       const historical = aggregatedData.map(day => ({
+    date: day._id,
+    revenue: Math.round(day.revenue)
+}));
+
+const dates = predictedRevenue.map(item => item.date);
+
+const predictions = predictedRevenue.map(item => item.expectedRevenue);
+
+// Compare recent actual revenue with predicted future revenue
+const recentHistorical = revenueValues.slice(-7);
+
+const averageHistoricalRevenue =
+    recentHistorical.length > 0
+        ? recentHistorical.reduce((sum, value) => sum + value, 0) /
+          recentHistorical.length
+        : 0;
+
+const nextSevenPredictions =
+    predictedRevenue
+        .slice(0, 7)
+        .map(item => item.expectedRevenue);
+
+const averagePredictedRevenue =
+    nextSevenPredictions.length > 0
+        ? nextSevenPredictions.reduce((sum, value) => sum + value, 0) /
+          nextSevenPredictions.length
+        : 0;
+
+const growthPercent =
+    averageHistoricalRevenue > 0
+        ? ((averagePredictedRevenue - averageHistoricalRevenue) /
+            averageHistoricalRevenue) * 100
+        : 0;
+
+const trend =
+    growthPercent > 1
+        ? 'upward'
+        : growthPercent < -1
+            ? 'downward'
+            : 'stable';
+
+res.json({
+    historical,
+    dates,
+    predictions,
+    trend,
+    growth: `${growthPercent.toFixed(1)}%`,
+    confidence: revenueValues.length >= 5 ? 'High' : 'Medium',
+    message:
+    trend === 'upward'
+        ? 'Forecast revenue shows an upward trend.'
+        : trend === 'downward'
+            ? 'Forecast revenue shows a downward trend.'
+            : 'Forecast revenue is relatively stable.',
+
+    // Keep the existing forecast information too
+    predictedRevenue,
+    predictedDemand,
+    productsList: topProducts
+});
 
     } catch (error) {
         console.error('Forecast Error:', error);

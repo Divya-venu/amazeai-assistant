@@ -98,7 +98,7 @@ Keep it concise and professional.
 
                     // 3. Generate AI Insights via Groq
                     const response = await groq.chat.completions.create({
-                        model: "llama-3.1-8b-instant",
+                        model: "openai/gpt-oss-20b",
                         messages: [
                             { role: "system", content: "You are an expert AI Business and Financial Assistant." },
                             { role: "user", content: prompt }
@@ -111,7 +111,7 @@ Keep it concise and professional.
                     // Log AI Usage (optional, catching errors so it doesn't break flow)
                     try {
                         await AIUsage.create({
-                            model: "llama-3.1-8b-instant",
+                            model: "openai/gpt-oss-20b",
                             promptTokens: response.usage.prompt_tokens,
                             completionTokens: response.usage.completion_tokens,
                             totalTokens: response.usage.total_tokens,

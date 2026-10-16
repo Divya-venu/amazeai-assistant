@@ -24,10 +24,43 @@ const UserSchema = new mongoose.Schema({
         default: 'user'
     },
     shopId: {
-        type: String,
-        required: [true, 'Shop ID is required'],
-        index: true
+    type: String,
+    required: [true, 'Shop ID is required'],
+    index: true
+},
+
+language: {
+    type: String,
+    default: 'English'
+},
+
+timeZone: {
+    type: String,
+    default: 'Asia/Kolkata'
+},
+
+notifications: {
+    email: {
+        type: Boolean,
+        default: true
+    },
+
+    browser: {
+        type: Boolean,
+        default: true
+    },
+
+    salesAlerts: {
+        type: Boolean,
+        default: true
+    },
+
+    weeklyReport: {
+        type: Boolean,
+        default: false
     }
+}
+
 }, { timestamps: true });
 
 // Encrypt password using bcrypt before saving

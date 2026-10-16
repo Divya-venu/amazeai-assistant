@@ -1,4 +1,5 @@
 const Dataset = require('../models/Dataset');
+const Sale = require('../models/Sale');
 const { validateAnalyticsInput } = require('../validators/analyticsValidator');
 const { computeAnalytics }       = require('../services/analyticsService');
 const logger                      = require('../utils/logger');
@@ -49,170 +50,143 @@ exports.postAnalytics = (req, res) => {
 
 exports.getAnalyticsOverview = async (req, res) => {
     try {
-        console.log("Backend: Generating Dynamic Analytics Overview");
+        console.log("Backend: Reading sales collection for dashboard");
 
-        // 1. Fetch a single dataset row to extract schemaMeta
-        const sampleRecord = await Dataset.findOne();
-        if (!sampleRecord) {
+        // Read sales records from MongoDB
+        const sales = await Sale.find().lean();
+
+        if (!sales || sales.length === 0) {
             return res.status(200).json({
-                kpis: { lastUpdated: new Date().toISOString() },
-                insights: { systemStatus: "No data uploaded yet. Connect a dataset to begin." },
+                kpis: {
+                    revenue: 0,
+                    expenses: 0,
+                    profit: 0,
+                    margin: 0,
+                    recordCount: 0,
+                    lastUpdated: new Date().toISOString()
+                },
+                insights: {
+                    systemStatus: "No sales data found"
+                },
                 monthlyData: [],
                 categoryData: [],
                 schemaMeta: null
             });
         }
 
-        const schema = sampleRecord.schemaMeta;
-        if (!schema || !schema.metrics || schema.metrics.length === 0) {
-            throw new Error("Invalid or missing schemaMeta in dataset");
-        }
+        let totalRevenue = 0;
+        let totalCost = 0;
+        let totalProfit = 0;
 
-        // 2. Build Dynamic Date Match
-        const dateMatch = {};
-        if (req.query.from && req.query.from !== 'undefined' && schema.timeColumn) {
-            dateMatch[`data.${schema.timeColumn}`] = { $gte: new Date(req.query.from) };
-        }
-        if (req.query.to && req.query.to !== 'undefined' && schema.timeColumn) {
-            dateMatch[`data.${schema.timeColumn}`] = dateMatch[`data.${schema.timeColumn}`] || {};
-            dateMatch[`data.${schema.timeColumn}`].$lte = new Date(req.query.to);
-        }
+        const monthlyMap = {};
+        const categoryMap = {};
 
-        // 3. Build Dynamic Aggregation Pipeline
-        // KPI Totals
-        const kpiGroup = { _id: null, recordCount: { $sum: 1 } };
-        schema.metrics.forEach(metric => {
-            kpiGroup[metric] = { $sum: `$data.${metric}` };
-        });
+        sales.forEach((sale) => {
+            const price = Number(sale.price) || 0;
+            const costPrice = Number(sale.costPrice) || 0;
+            const quantity = Number(sale.quantity) || 0;
 
-        // Monthly Trend
-        const trendGroup = {
-            _id: schema.timeColumn 
-                ? { $dateToString: { format: "%Y-%m", date: `$data.${schema.timeColumn}` } } 
-                : "All Time"
-        };
-        schema.metrics.forEach(metric => {
-            trendGroup[metric] = { $sum: `$data.${metric}` };
-        });
+            const revenue = price * quantity;
+            const cost = costPrice * quantity;
+            const profit = revenue - cost;
 
-        // Category Breakdown (using primary dimension)
-        const primaryDimension = schema.dimensions.length > 0 ? schema.dimensions[0] : null;
-        let categoryFacet = [];
-        if (primaryDimension && schema.metrics.length > 0) {
-            const primaryMetric = schema.primaryMetric || schema.metrics[0];
-            categoryFacet = [
-                {
-                    $group: {
-                        _id: `$data.${primaryDimension}`,
-                        value: { $sum: `$data.${primaryMetric}` }
-                    }
-                },
-                { $sort: { value: -1 } },
-                { $limit: 10 }
-            ];
-        } else {
-            categoryFacet = [{ $match: { _id: "noop" } }]; // Empty fallback
-        }
+            totalRevenue += revenue;
+            totalCost += cost;
+            totalProfit += profit;
 
-        // Run Aggregation
-        const stats = await Dataset.aggregate([
-            { $match: dateMatch },
-            {
-                $facet: {
-                    totals: [{ $group: kpiGroup }],
-                    monthlyData: [{ $group: trendGroup }, { $sort: { _id: 1 } }],
-                    categoryData: categoryFacet
-                }
+            // Monthly data
+            const saleDate = sale.date
+                ? new Date(sale.date)
+                : new Date(sale.createdAt || Date.now());
+
+            const monthKey = `${saleDate.getFullYear()}-${String(
+                saleDate.getMonth() + 1
+            ).padStart(2, '0')}`;
+
+            if (!monthlyMap[monthKey]) {
+                monthlyMap[monthKey] = {
+                    revenue: 0,
+                    expenses: 0,
+                    profit: 0
+                };
             }
-        ]);
 
-        const result = stats[0];
+            monthlyMap[monthKey].revenue += revenue;
+            monthlyMap[monthKey].expenses += cost;
+            monthlyMap[monthKey].profit += profit;
 
-        // Pad monthlyData if it has only 1 month so charts can draw a trend line
-        if (result.monthlyData && result.monthlyData.length === 1 && result.monthlyData[0]._id !== "All Time") {
-            const onlyMonth = result.monthlyData[0];
-            const [year, month] = onlyMonth._id.split('-');
-            let prevYear = parseInt(year);
-            let prevMonthNum = parseInt(month) - 1;
-            if (prevMonthNum === 0) {
-                prevMonthNum = 12;
-                prevYear -= 1;
+            // Category data
+            const category = sale.category || "Unknown";
+
+            if (!categoryMap[category]) {
+                categoryMap[category] = 0;
             }
-            const prevMonthId = `${prevYear}-${String(prevMonthNum).padStart(2, '0')}`;
-            
-            const paddedMonth = { _id: prevMonthId };
-            schema.metrics.forEach(m => paddedMonth[m] = 0);
-            
-            result.monthlyData.unshift(paddedMonth);
-        }
 
-        const totals = result.totals[0] || { recordCount: 0 };
-        
-        // Build KPIs dynamically
-        const dynamicKpis = {
-            recordCount: totals.recordCount,
-            lastUpdated: new Date().toISOString()
-        };
-        schema.metrics.forEach(metric => {
-            dynamicKpis[metric] = totals[metric] || 0;
+            categoryMap[category] += revenue;
         });
 
-        // Format Category Data dynamically
-        const totalDimensionValue = result.categoryData.reduce((sum, item) => sum + item.value, 0);
-        const formattedCategoryData = result.categoryData.map(c => ({
-            name: c._id || 'Unknown',
-            value: totalDimensionValue > 0 ? parseFloat(((c.value / totalDimensionValue) * 100).toFixed(1)) : 0,
-            revenue: c.value // Keeping 'revenue' key for backwards sorting compatibility in UI, but it represents 'value'
-        }));
+        const margin = totalRevenue > 0
+            ? (totalProfit / totalRevenue) * 100
+            : 0;
 
-        // Format Trend Data dynamically
-        const formattedMonthlyData = result.monthlyData.map(d => {
-            const row = {
-                month: d._id === "All Time" ? "All Time" : new Date(d._id + '-01').toLocaleDateString('default', { month: 'short' }),
-                rawDate: d._id
-            };
-            schema.metrics.forEach(m => row[m] = d[m]);
-            return row;
-        });
+        const monthlyData = Object.keys(monthlyMap)
+            .sort()
+            .map((month) => ({
+                month: new Date(`${month}-01`).toLocaleDateString(
+                    'en-US',
+                    { month: 'short' }
+                ),
+                rawDate: month,
+                revenue: Number(monthlyMap[month].revenue.toFixed(2)),
+                expenses: Number(monthlyMap[month].expenses.toFixed(2)),
+                profit: Number(monthlyMap[month].profit.toFixed(2))
+            }));
 
-        // Dynamic Insights Generator
-        const insightsDict = {
-            marginInsight: `AI Auto-Mapping Confidence: 99.1%`,
-            systemInsight: `Analyzing ${schema.metrics.length} metrics across ${schema.dimensions.length} dimensions`
-        };
-        
-        if (formattedMonthlyData.length >= 2) {
-            const lastMonth = formattedMonthlyData[formattedMonthlyData.length - 1];
-            const prevMonth = formattedMonthlyData[formattedMonthlyData.length - 2];
-            
-            schema.metrics.forEach(metric => {
-                const currV = lastMonth[metric] || 0;
-                const prevV = prevMonth[metric] || 0;
-                let trendStr = "+100.0%";
-                if (prevV > 0) {
-                    const diff = ((currV - prevV) / prevV) * 100;
-                    trendStr = (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%";
-                } else if (prevV === 0 && currV === 0) {
-                    trendStr = "+0.0%";
-                }
-                
-                insightsDict[`${metric}Trend`] = trendStr;
-                insightsDict[`${metric}Insight`] = trendStr.startsWith("+") ? `${metric} is up month-over-month` : `${metric} requires attention`;
-            });
-        }
+        const categoryData = Object.entries(categoryMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, revenue]) => ({
+                name,
+                revenue: Number(revenue.toFixed(2)),
+                value: totalRevenue > 0
+                    ? Number(((revenue / totalRevenue) * 100).toFixed(1))
+                    : 0
+            }));
 
-        const finalResponse = {
-            kpis: dynamicKpis,
-            insights: insightsDict,
-            monthlyData: formattedMonthlyData,
-            categoryData: formattedCategoryData,
-            schemaMeta: schema
+        const response = {
+            kpis: {
+                revenue: Number(totalRevenue.toFixed(2)),
+                expenses: Number(totalCost.toFixed(2)),
+                profit: Number(totalProfit.toFixed(2)),
+                margin: Number(margin.toFixed(2)),
+                recordCount: sales.length,
+                lastUpdated: new Date().toISOString()
+            },
+            insights: {
+                systemStatus: "Sales data loaded successfully",
+                recordCount: sales.length
+            },
+            monthlyData,
+            categoryData,
+            schemaMeta: {
+                metrics: ["revenue", "expenses", "profit", "margin"],
+                dimensions: ["category"],
+                timeColumn: "date"
+            }
         };
 
-        res.status(200).json(finalResponse);
+        console.log("Dashboard analytics response:", response);
+
+        return res.status(200).json(response);
 
     } catch (error) {
-        console.error("Backend Error in dynamic getAnalyticsOverview:", error);
-        res.status(500).json({ error: "Server error generating dynamic analytics overview", details: error.message });
+        console.error(
+            "Backend Error in sales analytics overview:",
+            error
+        );
+
+        return res.status(500).json({
+            error: "Server error generating sales analytics overview",
+            details: error.message
+        });
     }
 };

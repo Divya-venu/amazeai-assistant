@@ -63,12 +63,16 @@ app.use('/api', limiter);
 app.use('/api/assistant', assistantRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', require('./routes/profileRoutes'));
+app.use('/api/preferences', require('./routes/preferencesRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/analytics', require('./routes/analytics')); // Original analytics
+app.use('/api/ai-chat', require('./routes/aiChatRoute'));
 app.use('/api/upload', require('./routes/upload')); // Core DB upload
 app.use('/api/upload-csv', require('./routes/uploadCsvRoutes')); // Streaming analytics upload
 app.use('/api/whatsapp', require('./routes/whatsappRoutes'));
-app.use('/api/ai/chat', require('./routes/aiChat')); // Renamed for exact requirement
+// app.use('/api/ai/chat', require('./routes/aiChat')); // Renamed for exact requirement
 app.use('/api/insights', require('./routes/insights'));
 app.use('/api/forecast', require('./routes/forecastRoutes'));
 app.use('/api/ai-recommendations', require('./routes/recommendationsRoutes'));
