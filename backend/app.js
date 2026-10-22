@@ -23,6 +23,7 @@ app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 // CORS Configuration
 const allowedOrigins = [
     process.env.CORS_ORIGIN,
+    'https://amazeai-assistant-chi.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:3001',
@@ -31,6 +32,8 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173'
 ].filter(Boolean);
+
+
 
 app.use(cors({
     origin: function (origin, callback) {
