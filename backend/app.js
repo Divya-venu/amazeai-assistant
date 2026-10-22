@@ -12,6 +12,7 @@ const errorHandler = require('./middleware/errorMiddleware');
 const logger = require('./utils/logger');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
